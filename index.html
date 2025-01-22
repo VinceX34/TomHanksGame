@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tom Hanks Hangman</title>
+  <style>
+    /* Basic reset & styling */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #2d2d2d; /* Gray-ish background (VS Code style) */
+      color: #cccccc; /* Light gray text */
+      font-family: Consolas, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Banner / Header */
+    header {
+      width: 100%;
+      background-color: #333333;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      color: #ffffff;
+      font-size: 2rem;
+    }
+
+    /* Main container */
+    main {
+      width: 80%;
+      max-width: 600px;
+      text-align: center;
+    }
+
+    /* Difficulty radio buttons */
+    .difficulty-levels {
+      margin-bottom: 20px;
+    }
+    .difficulty-levels label {
+      margin-right: 15px;
+      cursor: pointer;
+    }
+
+    /* Game buttons and input */
+    #startBtn, #confirmBtn {
+      background-color: #555555;
+      color: #ffffff;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.3s ease;
+    }
+    #startBtn:hover,
+    #confirmBtn:hover {
+      background-color: #666666;
+    }
+
+    #guessInput {
+      width: 50px;
+      text-align: center;
+      font-size: 1rem;
+      padding: 5px;
+      margin-right: 10px;
+      color: #ffffff;
+      background-color: #444444;
+      border: 1px solid #555555;
+      outline: none;
+    }
+    #guessInput:focus {
+      border: 1px solid #888888;
+    }
+
+    /* Lives and message */
+    #lives {
+      margin: 15px 0;
+      font-size: 1.2rem;
+    }
+
+    #movieDisplay {
+      font-size: 2rem;
+      margin: 20px 0;
+      letter-spacing: 5px;
+    }
+
+    #message {
+      margin: 10px 0;
+      font-size: 1.1rem;
+    }
+
+    /* Hide the game container until we start */
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Tom Hanks Hangman Game</h1>
+  </header>
+
+  <main>
+    <div class="difficulty-levels">
+      <label><input type="radio" name="difficulty" value="7" checked /> Easy (7 lives)</label>
+      <label><input type="radio" name="difficulty" value="5" /> Medium (5 lives)</label>
+      <label><input type="radio" name="difficulty" value="3" /> Hard (3 lives)</label>
+    </div>
+
+    <button id="startBtn">Start Game</button>
+
+    <div id="gameContainer" class="hidden">
+      <p id="lives"></p>
+      <div id="movieDisplay"></div>
+      <input type="text" id="guessInput" maxlength="1" />
+      <button id="confirmBtn">Guess</button>
+      <p id="message"></p>
+    </div>
+  </main>
+
+  <script>
+    // List of Tom Hanks movies (use uppercase for simplicity in checking letters):
+    const tomHanksMovies = [
+      "FORREST GUMP",
+      "CAST AWAY",
+      "SAVING PRIVATE RYAN",
+      "BIG",
+      "TOY STORY",
+      "THE TERMINAL",
+      "SLEEPLESS IN SEATTLE",
+      "APOLLO 13",
+      "CATCH ME IF YOU CAN",
+      "BRIDGE OF SPIES"
+    ];
+
+    let chosenMovie = "";
+    let hiddenMovie = [];
+    let lives = 0;
+    let gameOver = false;
+
+    const startBtn = document.getElementById("startBtn");
+    const gameContainer = document.getElementById("gameContainer");
+    const movieDisplay = document.getElementById("movieDisplay");
+    const guessInput = document.getElementById("guessInput");
+    const confirmBtn = document.getElementById("confirmBtn");
+    const message = document.getElementById("message");
+    const livesDisplay = document.getElementById("lives");
+
+    // Start Game
+    startBtn.addEventListener("click", () => {
+      // Get chosen difficulty
+      const difficultyButtons = document.getElementsByName("difficulty");
+      for (let btn of difficultyButtons) {
+        if (btn.checked) {
+          lives = parseInt(btn.value);
+          break;
+        }
+      }
+
+      // Reset and show game container
+      gameOver = false;
+      message.textContent = "";
+      gameContainer.classList.remove("hidden");
+      guessInput.value = "";
+
+      // Pick a random movie
+      chosenMovie = tomHanksMovies[Math.floor(Math.random() * tomHanksMovies.length)];
+
+      // Create hidden version (underscores for letters, keep spaces)
+      hiddenMovie = chosenMovie.split("").map(char => (char === " " ? " " : "_"));
+      updateDisplay();
+      updateLives();
+    });
+
+    // Confirm guess
+    confirmBtn.addEventListener("click", handleGuess);
+
+    // Also allow Enter key
+    guessInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        handleGuess();
+      }
+    });
+
+    function handleGuess() {
+      if (gameOver) return;
+
+      const guess = guessInput.value.toUpperCase();
+      guessInput.value = "";
+
+      if (!guess || guess.length !== 1) {
+        message.textContent = "Please enter a single letter.";
+        return;
+      }
+
+      let correctGuess = false;
+      for (let i = 0; i < chosenMovie.length; i++) {
+        if (chosenMovie[i] === guess) {
+          hiddenMovie[i] = guess;
+          correctGuess = true;
+        }
+      }
+
+      // Deduct a life if the guess is not found (and is not a space/dash/apostrophe)
+      if (!correctGuess && ![" ", "-", "'"].includes(guess)) {
+        lives--;
+        updateLives();
+      }
+
+      updateDisplay();
+      checkWinOrLose();
+    }
+
+    function updateDisplay() {
+      movieDisplay.textContent = hiddenMovie.join("");
+    }
+
+    function updateLives() {
+      livesDisplay.textContent = `Lives: ${lives}`;
+    }
+
+    function checkWinOrLose() {
+      if (hiddenMovie.join("") === chosenMovie) {
+        message.textContent = "You guessed it! You win!";
+        gameOver = true;
+      } else if (lives <= 0) {
+        message.textContent = `Game Over! The movie was: ${chosenMovie}`;
+        gameOver = true;
+      }
+    }
+  </script>
+</body>
+</html>
